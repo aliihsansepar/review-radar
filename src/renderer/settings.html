@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src https://avatars.githubusercontent.com"
+    />
+    <title>Settings</title>
+    <link rel="stylesheet" href="base.css" />
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body>
+    <main>
+      <section>
+        <h2>Account</h2>
+        <div class="group">
+          <div class="item account">
+            <div id="account-avatar"></div>
+            <div class="account-text">
+              <div id="login"></div>
+              <div class="dim" id="scopes"></div>
+            </div>
+            <button class="btn" id="sign-out" type="button">Sign out</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Age colors</h2>
+        <div class="group">
+          <div class="item">
+            <span><i class="dot green"></i>Fresh</span>
+            <span class="dim" id="fresh-label"></span>
+          </div>
+          <label class="item">
+            <span><i class="dot yellow"></i>Yellow after</span>
+            <span><input type="number" id="yellow-days" min="1" step="1" /> <span class="dim">days</span></span>
+          </label>
+          <label class="item">
+            <span><i class="dot red"></i>Red after</span>
+            <span><input type="number" id="red-days" min="2" step="1" /> <span class="dim">days</span></span>
+          </label>
+        </div>
+        <p class="error-text" id="error" role="alert" hidden></p>
+      </section>
+
+      <section>
+        <h2>General</h2>
+        <div class="group">
+          <label class="item">
+            <span>Check every</span>
+            <select id="interval"></select>
+          </label>
+          <label class="item">
+            <span>Notify on new requests</span>
+            <input type="checkbox" role="switch" class="switch" id="notify" />
+          </label>
+          <label class="item">
+            <span>Include draft PRs</span>
+            <input type="checkbox" role="switch" class="switch" id="include-drafts" />
+          </label>
+          <label class="item">
+            <span>Launch at login</span>
+            <input type="checkbox" role="switch" class="switch" id="launch-at-login" />
+          </label>
+        </div>
+      </section>
+
+      <section>
+        <h2>Updates</h2>
+        <div class="group">
+          <div class="item update">
+            <div class="update-text">
+              <div id="version"></div>
+              <div class="dim" id="update-status" role="status"></div>
+            </div>
+            <button class="btn" id="check-update" type="button">Check for updates</button>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="avatar.js"></script>
+    <script src="settings.js"></script>
+  </body>
+</html>

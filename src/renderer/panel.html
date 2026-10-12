@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; img-src https://avatars.githubusercontent.com"
+    />
+    <title>Review Radar</title>
+    <link rel="stylesheet" href="base.css" />
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <div id="panel">
+      <header>
+        <div>
+          <div class="title">Waiting on your review</div>
+          <div class="subtitle" id="subtitle"></div>
+        </div>
+        <button class="link" id="refresh" type="button">Refresh</button>
+      </header>
+      <div class="error-row" id="error" role="alert" hidden></div>
+      <ul id="list" aria-label="Pull requests waiting on your review"></ul>
+      <div class="empty" id="empty" hidden>Nothing waiting on you.</div>
+      <nav class="menu">
+        <button type="button" id="open-queue"><span>Open review queue on GitHub</span><kbd>⌘O</kbd></button>
+        <button type="button" id="open-settings"><span>Settings…</span><kbd>⌘,</kbd></button>
+        <button type="button" id="quit"><span>Quit Review Radar</span><kbd>⌘Q</kbd></button>
+      </nav>
+    </div>
+    <script src="avatar.js"></script>
+    <script src="tray-icon.js"></script>
+    <script src="panel.js"></script>
+  </body>
+</html>

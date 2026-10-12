@@ -1,0 +1,43 @@
+{
+  "name": "review-radar",
+  "productName": "Review Radar",
+  "version": "1.0.0",
+  "description": "macOS menu bar app that shows the GitHub pull requests waiting on your review.",
+  "main": "src/main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/",
+    "dist": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.imonursahin.review-radar",
+    "productName": "Review Radar",
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png",
+      "identity": null,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "ReviewRadar-${version}-${arch}.${ext}",
+      "extendInfo": {
+        "LSUIElement": true
+      }
+    },
+    "afterPack": "scripts/afterPack.js"
+  }
+}

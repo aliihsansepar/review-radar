@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'" />
+    <title>Connect GitHub</title>
+    <link rel="stylesheet" href="base.css" />
+    <link rel="stylesheet" href="onboarding.css" />
+  </head>
+  <body>
+    <form id="form" novalidate>
+      <div class="app-icon" aria-hidden="true">
+        <svg viewBox="0 0 16 16" width="36" height="36">
+          <g fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="4" cy="3" r="1.8" />
+            <circle cx="4" cy="13" r="1.8" />
+            <circle cx="12" cy="13" r="1.8" />
+            <path d="M4 4.8v6.4M12 11.2V6.5q0-3-3-3H7.5M9.2 1.8 7.5 3.5l1.7 1.7" />
+          </g>
+        </svg>
+      </div>
+      <h1>Connect GitHub</h1>
+      <p class="intro">
+        Review Radar checks which pull requests are waiting on you. Your token stays in your Keychain.
+      </p>
+
+      <div class="section" id="gh-section" hidden>
+        <button class="btn primary" type="button" id="gh-connect">Continue with GitHub CLI</button>
+        <p class="hint center">
+          Uses your <code>gh</code> sign-in on this Mac · <a href="#" id="use-token">Use a token instead</a>
+        </p>
+      </div>
+
+      <div class="section" id="token-section" hidden>
+        <label for="token">Personal access token</label>
+        <input
+          type="password"
+          id="token"
+          placeholder="ghp_••••••••••••••••"
+          autocomplete="off"
+          spellcheck="false"
+          aria-describedby="hint error"
+        />
+        <p class="hint" id="hint">
+          Needs <code>repo</code> and <code>read:org</code> ·
+          <a href="#" id="create-token">Create a token on GitHub</a>
+        </p>
+      </div>
+      <p class="error-text" id="error" role="alert" hidden></p>
+
+      <div class="actions">
+        <button class="btn" type="button" id="quit">Quit</button>
+        <button class="btn primary" type="submit" id="connect" disabled hidden>Connect</button>
+      </div>
+    </form>
+    <script src="onboarding.js"></script>
+  </body>
+</html>

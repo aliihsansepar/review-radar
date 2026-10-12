@@ -1,0 +1,20 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('radar', {
+  onState: (callback) => ipcRenderer.on('state', (_event, state) => callback(state)),
+  refresh: () => ipcRenderer.send('refresh'),
+  openUrl: (url) => ipcRenderer.send('open-url', url),
+  openQueue: () => ipcRenderer.send('open-queue'),
+  openSettings: () => ipcRenderer.send('open-settings'),
+  closePanel: () => ipcRenderer.send('close-panel'),
+  quit: () => ipcRenderer.send('quit'),
+  setPanelHeight: (height) => ipcRenderer.send('panel-height', height),
+  setTrayImage: (image) => ipcRenderer.send('tray-image', image),
+  getSettings: () => ipcRenderer.invoke('settings:get'),
+  saveSettings: (settings) => ipcRenderer.invoke('settings:save', settings),
+  signOut: () => ipcRenderer.invoke('sign-out'),
+  connect: (token) => ipcRenderer.invoke('connect', token),
+  checkUpdate: () => ipcRenderer.invoke('check-update'),
+  ghAccount: () => ipcRenderer.invoke('gh-account'),
+  connectGh: () => ipcRenderer.invoke('connect-gh'),
+});
