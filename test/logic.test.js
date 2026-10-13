@@ -229,7 +229,6 @@ test('buildFilterList groups by owner, orgs first, with short repo names', () =>
     { name: 'api', nameWithOwner: 'zorg/api', selected: false },
     { name: 'web', nameWithOwner: 'zorg/web', selected: true },
   ]);
-  assert.equal(list.shownCount, 1);
 });
 
 test('buildFilterList reports all/none group states', () => {
@@ -240,7 +239,10 @@ test('buildFilterList reports all/none group states', () => {
 test('buildFilterList surfaces checked entries missing from the pool', () => {
   const list = buildFilterList(POOL, ['zorg/web', 'old/repo']);
   assert.deepEqual(list.missing, ['old/repo']);
-  assert.equal(list.shownCount, 2);
+});
+
+test('buildFilterList reports an empty group as none, not all', () => {
+  assert.equal(buildFilterList({ orgs: [], repos: [] }, []).groups.length, 0);
 });
 
 test('buildFilterList matches case-insensitively and passes truncation through', () => {

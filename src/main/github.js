@@ -5,6 +5,7 @@ const LATEST_RELEASE_URL = 'https://api.github.com/repos/imonursahin/review-rada
 const TIMEOUT_MS = 15000;
 const GH_TIMEOUT_MS = 3000;
 const GH_PATH = ['/opt/homebrew/bin', '/usr/local/bin', process.env.PATH].filter(Boolean).join(':');
+const ORG_CONCURRENCY = 6;
 
 const REVIEWS_QUERY = `
 query {
@@ -221,11 +222,16 @@ async function fetchRepoPool(token, { maxPages = 10 } = {}) {
   add(mine.repos);
 
   let truncated = mine.truncated;
-  for (const login of orgs) {
-    const read = (view) => view?.organization?.repositories;
-    const found = await collectRepos(token, ORG_REPOS_QUERY, { login }, read, maxPages);
-    add(found.repos);
-    truncated = truncated || found.truncated;
+  const read = (view) => view?.organization?.repositories;
+  for (let start = 0; start < orgs.length; start += ORG_CONCURRENCY) {
+    const batch = orgs.slice(start, start + ORG_CONCURRENCY);
+    const found = await Promise.all(
+      batch.map((login) => collectRepos(token, ORG_REPOS_QUERY, { login }, read, maxPages)),
+    );
+    for (const result of found) {
+      add(result.repos);
+      truncated = truncated || result.truncated;
+    }
   }
   return { orgs, repos: [...names].sort(), avatars, truncated };
 }

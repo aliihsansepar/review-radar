@@ -1,55 +1,61 @@
 window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refresh, chips, summary, clear, onChange }) {
-  let view = { groups: [], missing: [], shownCount: 0, truncated: false };
+  let view = { groups: [], missing: [], truncated: false };
+  let seq = 0;
   const overrides = new Map();
 
-  function selection() {
+  function selectedNames() {
     const names = [...view.missing];
     for (const group of view.groups) {
       for (const repo of group.repos) if (repo.selected) names.push(repo.nameWithOwner);
     }
-    return [...new Set(names)];
+    return names;
   }
 
-  function matches(text) {
-    const query = search.value.trim().toLowerCase();
+  function matches(text, query) {
     return !query || text.toLowerCase().includes(query);
   }
 
-  function commit(names) {
-    return window.radar.saveFilter(names).then((next) => {
-      if (next && Array.isArray(next.groups)) {
-        view = next;
-        draw();
-      } else if (next && next.error && empty) {
-        empty.hidden = false;
-        empty.textContent = next.error;
-      }
-    });
+  function setError(message) {
+    if (!empty) return;
+    empty.hidden = false;
+    empty.textContent = message ?? 'Could not save the filter.';
   }
 
-  function toggle(name, selected) {
-    const names = new Set(selection());
-    if (selected) names.add(name);
-    else names.delete(name);
-    return commit([...names]);
+  function apply(next) {
+    if (!next || !Array.isArray(next.groups)) return;
+    view = next;
+    draw();
   }
 
-  function toggleGroup(group) {
+  function save(pending) {
+    const mine = ++seq;
+    return pending.then(
+      (next) => {
+        if (mine !== seq) return;
+        if (next && Array.isArray(next.groups)) apply(next);
+        else setError(next?.error);
+      },
+      (error) => {
+        if (mine !== seq) return;
+        setError(error?.message);
+      },
+    );
+  }
+
+  function toggleRepo(name, selected) {
+    return save(window.radar.toggleRepo(name, selected));
+  }
+
+  function toggleOwner(group) {
     overrides.delete(group.owner);
-    const names = new Set(selection());
-    const clearing = group.state === 'all';
-    for (const repo of group.repos) {
-      if (clearing) names.delete(repo.nameWithOwner);
-      else names.add(repo.nameWithOwner);
-    }
-    return commit([...names]);
+    return save(window.radar.toggleOwner(group.owner, group.state !== 'all'));
   }
 
   function repoRow(repo, className) {
     const box = document.createElement('input');
     box.type = 'checkbox';
     box.checked = repo.selected;
-    box.addEventListener('change', () => toggle(repo.nameWithOwner, box.checked));
+    box.addEventListener('change', () => toggleRepo(repo.nameWithOwner, box.checked));
     const label = document.createElement('label');
     label.className = className ? `filter-row ${className}` : 'filter-row';
     const text = document.createElement('span');
@@ -66,12 +72,11 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     return element;
   }
 
-  function ownerGroup(group) {
-    const query = search.value.trim().toLowerCase();
-    const ownerMatches = !query || group.owner.toLowerCase().includes(query);
+  function ownerGroup(group, query) {
+    const ownerMatches = matches(group.owner, query);
     const repos = ownerMatches
       ? group.repos
-      : group.repos.filter((repo) => repo.nameWithOwner.toLowerCase().includes(query));
+      : group.repos.filter((repo) => matches(repo.nameWithOwner, query));
     if (!ownerMatches && repos.length === 0) return null;
 
     const expanded = overrides.has(group.owner)
@@ -98,7 +103,7 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     box.type = 'checkbox';
     box.checked = group.state === 'all';
     box.indeterminate = group.state === 'some';
-    box.addEventListener('change', () => toggleGroup(group));
+    box.addEventListener('change', () => toggleOwner(group));
     const avatar = createAvatar(group.owner, group.avatarUrl);
     avatar.classList.add('filter-avatar');
     const name = document.createElement('span');
@@ -134,22 +139,25 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     cross.className = 'filter-chip-x';
     cross.textContent = '✕';
     button.append(text, cross);
-    button.addEventListener('click', () => toggle(name, false));
+    button.addEventListener('click', () => toggleRepo(name, false));
     return button;
   }
 
   function draw() {
+    const query = search.value.trim().toLowerCase();
     const nodes = [];
-    const missing = view.missing.filter(matches);
+    const missing = view.missing.filter((name) => matches(name, query));
     if (missing.length > 0) {
       const unreadable = view.ok === false;
       nodes.push(heading(unreadable ? 'Selected' : 'No longer available'));
-      for (const name of missing) nodes.push(repoRow({ nameWithOwner: name, selected: true }, unreadable ? undefined : 'missing'));
+      for (const name of missing) {
+        nodes.push(repoRow({ nameWithOwner: name, selected: true }, unreadable ? undefined : 'missing'));
+      }
     }
-    nodes.push(...view.groups.map(ownerGroup).filter(Boolean));
+    nodes.push(...view.groups.map((group) => ownerGroup(group, query)).filter(Boolean));
     list.replaceChildren(...nodes);
 
-    const names = selection();
+    const names = selectedNames();
     if (chips) {
       chips.replaceChildren(...names.map(chipFor));
       chips.hidden = names.length === 0;
@@ -169,15 +177,32 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
   }
 
   function load(refreshPool) {
-    return window.radar.getFilterView(Boolean(refreshPool)).then((next) => {
-      if (next && Array.isArray(next.groups)) view = next;
-      else if (next && next.error) view = { ...view, error: next.error };
+    const mine = ++seq;
+    if (empty && view.groups.length === 0 && view.missing.length === 0) {
+      empty.hidden = false;
+      empty.textContent = 'Loading repositories…';
+    }
+    return window.radar.getFilterView(refreshPool === true).then(
+      (next) => {
+        if (mine === seq) apply(next);
+      },
+      (error) => {
+        if (mine === seq) setError(error?.message);
+      },
+    );
+  }
+
+  let frame = 0;
+  function scheduleDraw() {
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
       draw();
     });
   }
 
-  search.addEventListener('input', draw);
+  search.addEventListener('input', scheduleDraw);
   if (refresh) refresh.addEventListener('click', () => load(true));
-  if (clear) clear.addEventListener('click', () => commit([]));
+  if (clear) clear.addEventListener('click', () => save(window.radar.clearFilter()));
   return { load };
 };

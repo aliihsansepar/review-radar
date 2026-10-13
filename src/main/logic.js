@@ -103,6 +103,7 @@ function buildFilterList(pool, selectedRepos) {
     byOwner.get(key).repos.push({ name, nameWithOwner, selected: selected.has(nameWithOwner.toLowerCase()) });
   }
   const stateOf = (repos) => {
+    if (repos.length === 0) return 'none';
     const on = repos.filter((repo) => repo.selected).length;
     if (on === repos.length) return 'all';
     return on === 0 ? 'none' : 'some';
@@ -119,7 +120,7 @@ function buildFilterList(pool, selectedRepos) {
     }))
     .sort((a, b) => Number(b.isOrg) - Number(a.isOrg) || a.owner.localeCompare(b.owner));
   const missing = selectedRepos.filter((name) => !poolNames.has(name.toLowerCase())).sort();
-  return { groups, missing, shownCount: selectedRepos.length, truncated: Boolean(pool.truncated) };
+  return { groups, missing, truncated: Boolean(pool.truncated) };
 }
 
 function isNewerVersion(latest, current) {
