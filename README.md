@@ -39,6 +39,19 @@ Built with Electron. No runtime dependencies.
   </tr>
 </table>
 
+### Filtering
+
+<p>Limit the app to the repositories you work on. Repositories are grouped by owner — organizations first, then user accounts — and each group has a checkbox that selects all of them at once. An owner row also shows whether it is an organization or a user, how many of its repositories are selected, and an arrow to fold it away.</p>
+
+<table>
+  <tr>
+    <td><img src="docs/filter-panel.png" alt="The panel's inline filter picker: search box, selected repository chips, and organization and user groups with checkboxes" width="360" /></td>
+    <td><img src="docs/filter-settings.png" alt="The Filter section in Settings with the same grouped repository picker" width="420" /></td>
+  </tr>
+</table>
+
+<p>Both places edit the same filter, so a change in one shows up in the other. Nothing selected means everything shows.</p>
+
 ### Notifications
 
 A banner for each new review request shows the title, repo, number and author. Click it to open the pull request. At 9:00 you get one summary banner if anything is past the red threshold. It shows how many are overdue and the oldest one. Click it to open that pull request, or your review queue when there are several.
