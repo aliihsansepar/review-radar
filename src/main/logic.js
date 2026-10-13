@@ -93,23 +93,24 @@ function matchesFilter(repoFullName, visibleRepos) {
 
 function buildFilterList(pool, selectedRepos) {
   const selected = new Set(selectedRepos.map((name) => name.toLowerCase()));
+  const orgLogins = new Set((pool.orgs ?? []).map((login) => login.toLowerCase()));
   const byOwner = new Map();
   for (const nameWithOwner of pool.repos ?? []) {
-    const owner = nameWithOwner.split('/')[0];
+    const [owner, name] = nameWithOwner.split('/');
     const key = owner.toLowerCase();
-    if (!byOwner.has(key)) byOwner.set(key, { owner, repos: [] });
-    byOwner.get(key).repos.push({ nameWithOwner, selected: selected.has(nameWithOwner.toLowerCase()) });
+    if (!byOwner.has(key)) byOwner.set(key, { owner, isOrg: orgLogins.has(key), repos: [] });
+    byOwner.get(key).repos.push({ name, nameWithOwner, selected: selected.has(nameWithOwner.toLowerCase()) });
   }
   const stateOf = (repos) => {
     const on = repos.filter((repo) => repo.selected).length;
     if (on === repos.length) return 'all';
     return on === 0 ? 'none' : 'some';
   };
-  const byName = (a, b) => a.nameWithOwner.localeCompare(b.nameWithOwner);
+  const byName = (a, b) => a.name.localeCompare(b.name);
   const poolNames = new Set((pool.repos ?? []).map((name) => name.toLowerCase()));
   const groups = [...byOwner.values()]
-    .map((group) => ({ owner: group.owner, state: stateOf(group.repos), repos: group.repos.sort(byName) }))
-    .sort((a, b) => a.owner.localeCompare(b.owner));
+    .map((group) => ({ owner: group.owner, isOrg: group.isOrg, state: stateOf(group.repos), repos: group.repos.sort(byName) }))
+    .sort((a, b) => Number(b.isOrg) - Number(a.isOrg) || a.owner.localeCompare(b.owner));
   const missing = selectedRepos.filter((name) => !poolNames.has(name.toLowerCase())).sort();
   return { groups, missing, shownCount: selectedRepos.length, truncated: Boolean(pool.truncated) };
 }

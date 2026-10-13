@@ -209,38 +209,38 @@ test('matchesFilter ignores case and tolerates a missing repo name', () => {
   assert.equal(matchesFilter(undefined, new Set(['acme/web'])), false);
 });
 
-const POOL = { orgs: ['acme', 'globex'], repos: ['acme/web', 'acme/api', 'me/tool'], truncated: false };
+const POOL = { orgs: ['zorg'], repos: ['zorg/web', 'zorg/api', 'alice/tool'], truncated: false };
 
-test('buildFilterList groups repos by owner and flags tri-state', () => {
-  const list = buildFilterList(POOL, ['acme/web']);
-  assert.deepEqual(list.groups, [
-    {
-      owner: 'acme',
-      state: 'some',
-      repos: [
-        { nameWithOwner: 'acme/api', selected: false },
-        { nameWithOwner: 'acme/web', selected: true },
-      ],
-    },
-    { owner: 'me', state: 'none', repos: [{ nameWithOwner: 'me/tool', selected: false }] },
+test('buildFilterList groups by owner, orgs first, with short repo names', () => {
+  const list = buildFilterList(POOL, ['zorg/web']);
+  assert.deepEqual(
+    list.groups.map((group) => [group.owner, group.isOrg, group.state]),
+    [
+      ['zorg', true, 'some'],
+      ['alice', false, 'none'],
+    ],
+  );
+  assert.deepEqual(list.groups[0].repos, [
+    { name: 'api', nameWithOwner: 'zorg/api', selected: false },
+    { name: 'web', nameWithOwner: 'zorg/web', selected: true },
   ]);
   assert.equal(list.shownCount, 1);
 });
 
 test('buildFilterList reports all/none group states', () => {
-  assert.equal(buildFilterList(POOL, ['acme/web', 'acme/api']).groups[0].state, 'all');
+  assert.equal(buildFilterList(POOL, ['zorg/web', 'zorg/api']).groups[0].state, 'all');
   assert.equal(buildFilterList(POOL, []).groups[0].state, 'none');
 });
 
 test('buildFilterList surfaces checked entries missing from the pool', () => {
-  const list = buildFilterList(POOL, ['acme/web', 'old/repo']);
+  const list = buildFilterList(POOL, ['zorg/web', 'old/repo']);
   assert.deepEqual(list.missing, ['old/repo']);
   assert.equal(list.shownCount, 2);
 });
 
 test('buildFilterList matches case-insensitively and passes truncation through', () => {
-  const list = buildFilterList({ ...POOL, truncated: true }, ['Acme/Web']);
-  assert.equal(list.groups[0].repos.find((repo) => repo.nameWithOwner === 'acme/web').selected, true);
+  const list = buildFilterList({ ...POOL, truncated: true }, ['Zorg/Web']);
+  assert.equal(list.groups[0].repos.find((repo) => repo.nameWithOwner === 'zorg/web').selected, true);
   assert.deepEqual(list.missing, []);
   assert.equal(list.truncated, true);
 });

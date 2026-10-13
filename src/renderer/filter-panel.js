@@ -45,16 +45,16 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     return commit([...names]);
   }
 
-  function row(name, selected, className) {
+  function row(text, selected, className, value) {
     const label = document.createElement('label');
     label.className = className ? `filter-row ${className}` : 'filter-row';
     const box = document.createElement('input');
     box.type = 'checkbox';
     box.checked = selected;
-    box.addEventListener('change', () => toggle(name, box.checked));
-    const text = document.createElement('span');
-    text.textContent = name;
-    label.append(box, text);
+    box.addEventListener('change', () => toggle(value ?? text, box.checked));
+    const span = document.createElement('span');
+    span.textContent = text;
+    label.append(box, span);
     return label;
   }
 
@@ -111,7 +111,7 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     if (expanded) {
       const children = document.createElement('div');
       children.className = 'filter-children';
-      for (const repo of repos) children.append(row(repo.nameWithOwner, repo.selected));
+      for (const repo of repos) children.append(row(repo.name, repo.selected, undefined, repo.nameWithOwner));
       wrapper.append(children);
     }
     return wrapper;
@@ -125,7 +125,17 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
       nodes.push(heading(unreadable ? 'Selected' : 'No longer available'));
       for (const name of missing) nodes.push(row(name, true, unreadable ? undefined : 'missing'));
     }
-    nodes.push(...view.groups.map(ownerGroup).filter(Boolean));
+    const built = view.groups.map((group) => ({ group, node: ownerGroup(group) })).filter((item) => item.node);
+    const orgNodes = built.filter((item) => item.group.isOrg).map((item) => item.node);
+    const ownerNodes = built.filter((item) => !item.group.isOrg).map((item) => item.node);
+    if (orgNodes.length > 0) {
+      nodes.push(heading('Organizations'));
+      nodes.push(...orgNodes);
+    }
+    if (ownerNodes.length > 0) {
+      nodes.push(heading('Owners'));
+      nodes.push(...ownerNodes);
+    }
     list.replaceChildren(...nodes);
     if (empty) {
       const message = view.error ? view.error : view.truncated ? 'Too many repositories to list — narrow with the search.' : '';
