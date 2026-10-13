@@ -115,3 +115,11 @@ window.radar.getSettings().then((settings) => {
   fill(settings);
   document.getElementById('version').textContent = `Version ${settings.version}`;
 });
+
+window
+  .mountFilterPanel({
+    list: document.getElementById('filter-list'),
+    search: document.getElementById('filter-search'),
+    empty: document.getElementById('filter-status'),
+  })
+  .load(false);
