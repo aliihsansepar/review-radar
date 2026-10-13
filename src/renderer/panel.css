@@ -244,7 +244,7 @@ kbd {
   color: var(--text);
 }
 
-.filter-org {
+.filter-owner {
   display: flex;
   align-items: center;
   gap: 2px;

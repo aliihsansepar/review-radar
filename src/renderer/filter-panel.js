@@ -1,13 +1,12 @@
 window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refresh, onChange }) {
-  let view = { orgs: [], loose: [], missing: [], shownCount: 0, truncated: false };
+  let view = { groups: [], missing: [], shownCount: 0, truncated: false };
   const overrides = new Map();
 
   function selection() {
     const names = [...view.missing];
-    for (const org of view.orgs) {
-      for (const repo of org.repos) if (repo.selected) names.push(repo.nameWithOwner);
+    for (const group of view.groups) {
+      for (const repo of group.repos) if (repo.selected) names.push(repo.nameWithOwner);
     }
-    for (const repo of view.loose) if (repo.selected) names.push(repo.nameWithOwner);
     return [...new Set(names)];
   }
 
@@ -18,7 +17,7 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
 
   function commit(names) {
     return window.radar.saveFilter(names).then((next) => {
-      if (next && Array.isArray(next.orgs)) {
+      if (next && Array.isArray(next.groups)) {
         view = next;
         draw();
       } else if (next && next.error && empty) {
@@ -35,11 +34,11 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     return commit([...names]);
   }
 
-  function toggleOrg(org) {
-    overrides.delete(org.login);
+  function toggleGroup(group) {
+    overrides.delete(group.owner);
     const names = new Set(selection());
-    const clearing = org.state === 'all';
-    for (const repo of org.repos) {
+    const clearing = group.state === 'all';
+    for (const repo of group.repos) {
       if (clearing) names.delete(repo.nameWithOwner);
       else names.add(repo.nameWithOwner);
     }
@@ -66,27 +65,29 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     return element;
   }
 
-  function orgGroup(org) {
+  function ownerGroup(group) {
     const query = search.value.trim().toLowerCase();
-    const loginMatches = !query || org.login.toLowerCase().includes(query);
-    const repos = loginMatches
-      ? org.repos
-      : org.repos.filter((repo) => repo.nameWithOwner.toLowerCase().includes(query));
-    if (!loginMatches && repos.length === 0) return null;
+    const ownerMatches = !query || group.owner.toLowerCase().includes(query);
+    const repos = ownerMatches
+      ? group.repos
+      : group.repos.filter((repo) => repo.nameWithOwner.toLowerCase().includes(query));
+    if (!ownerMatches && repos.length === 0) return null;
 
-    const expanded = overrides.has(org.login) ? overrides.get(org.login) : Boolean(query) || org.state !== 'none';
-    const group = document.createElement('div');
-    group.className = 'filter-group';
+    const expanded = overrides.has(group.owner)
+      ? overrides.get(group.owner)
+      : Boolean(query) || group.state !== 'none';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'filter-group';
 
     const host = document.createElement('div');
-    host.className = 'filter-org';
+    host.className = 'filter-owner';
     const caret = document.createElement('button');
     caret.type = 'button';
     caret.className = 'filter-caret';
     caret.textContent = expanded ? '▾' : '▸';
     caret.setAttribute('aria-expanded', String(expanded));
     caret.addEventListener('click', () => {
-      overrides.set(org.login, !expanded);
+      overrides.set(group.owner, !expanded);
       draw();
     });
 
@@ -94,26 +95,26 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     label.className = 'filter-row org';
     const box = document.createElement('input');
     box.type = 'checkbox';
-    box.checked = org.state === 'all';
-    box.indeterminate = org.state === 'some';
-    box.addEventListener('change', () => toggleOrg(org));
+    box.checked = group.state === 'all';
+    box.indeterminate = group.state === 'some';
+    box.addEventListener('change', () => toggleGroup(group));
     const text = document.createElement('span');
     text.className = 'filter-name';
-    text.textContent = org.login;
+    text.textContent = group.owner;
     const count = document.createElement('span');
     count.className = 'filter-count';
-    count.textContent = `${org.repos.filter((repo) => repo.selected).length}/${org.repos.length}`;
+    count.textContent = `${group.repos.filter((repo) => repo.selected).length}/${group.repos.length}`;
     label.append(box, text, count);
     host.append(caret, label);
-    group.append(host);
+    wrapper.append(host);
 
     if (expanded) {
       const children = document.createElement('div');
       children.className = 'filter-children';
       for (const repo of repos) children.append(row(repo.nameWithOwner, repo.selected));
-      group.append(children);
+      wrapper.append(children);
     }
-    return group;
+    return wrapper;
   }
 
   function draw() {
@@ -124,16 +125,7 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
       nodes.push(heading(unreadable ? 'Selected' : 'No longer available'));
       for (const name of missing) nodes.push(row(name, true, unreadable ? undefined : 'missing'));
     }
-    const orgs = view.orgs.map(orgGroup).filter(Boolean);
-    if (orgs.length > 0) {
-      nodes.push(heading('Organizations'));
-      nodes.push(...orgs);
-    }
-    const loose = view.loose.filter((repo) => matches(repo.nameWithOwner));
-    if (loose.length > 0) {
-      nodes.push(heading('Repositories'));
-      for (const repo of loose) nodes.push(row(repo.nameWithOwner, repo.selected));
-    }
+    nodes.push(...view.groups.map(ownerGroup).filter(Boolean));
     list.replaceChildren(...nodes);
     if (empty) {
       const message = view.error ? view.error : view.truncated ? 'Too many repositories to list — narrow with the search.' : '';
@@ -145,7 +137,7 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
 
   function load(refreshPool) {
     return window.radar.getFilterView(Boolean(refreshPool)).then((next) => {
-      if (next && Array.isArray(next.orgs)) view = next;
+      if (next && Array.isArray(next.groups)) view = next;
       else if (next && next.error) view = { ...view, error: next.error };
       draw();
     });

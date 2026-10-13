@@ -93,19 +93,12 @@ function matchesFilter(repoFullName, visibleRepos) {
 
 function buildFilterList(pool, selectedRepos) {
   const selected = new Set(selectedRepos.map((name) => name.toLowerCase()));
-  const orgLogins = new Set((pool.orgs ?? []).map((login) => login.toLowerCase()));
-  const byLogin = new Map();
-  const loose = [];
+  const byOwner = new Map();
   for (const nameWithOwner of pool.repos ?? []) {
     const owner = nameWithOwner.split('/')[0];
-    const entry = { nameWithOwner, selected: selected.has(nameWithOwner.toLowerCase()) };
     const key = owner.toLowerCase();
-    if (orgLogins.has(key)) {
-      if (!byLogin.has(key)) byLogin.set(key, { login: owner, repos: [] });
-      byLogin.get(key).repos.push(entry);
-    } else {
-      loose.push(entry);
-    }
+    if (!byOwner.has(key)) byOwner.set(key, { owner, repos: [] });
+    byOwner.get(key).repos.push({ nameWithOwner, selected: selected.has(nameWithOwner.toLowerCase()) });
   }
   const stateOf = (repos) => {
     const on = repos.filter((repo) => repo.selected).length;
@@ -114,11 +107,11 @@ function buildFilterList(pool, selectedRepos) {
   };
   const byName = (a, b) => a.nameWithOwner.localeCompare(b.nameWithOwner);
   const poolNames = new Set((pool.repos ?? []).map((name) => name.toLowerCase()));
-  const orgs = [...byLogin.values()]
-    .map((group) => ({ login: group.login, state: stateOf(group.repos), repos: group.repos.sort(byName) }))
-    .sort((a, b) => a.login.localeCompare(b.login));
+  const groups = [...byOwner.values()]
+    .map((group) => ({ owner: group.owner, state: stateOf(group.repos), repos: group.repos.sort(byName) }))
+    .sort((a, b) => a.owner.localeCompare(b.owner));
   const missing = selectedRepos.filter((name) => !poolNames.has(name.toLowerCase())).sort();
-  return { orgs, loose: loose.sort(byName), missing, shownCount: selectedRepos.length, truncated: Boolean(pool.truncated) };
+  return { groups, missing, shownCount: selectedRepos.length, truncated: Boolean(pool.truncated) };
 }
 
 function isNewerVersion(latest, current) {
