@@ -17,7 +17,7 @@ query {
         url
         isDraft
         createdAt
-        repository { name }
+        repository { name nameWithOwner }
         author { login avatarUrl }
         labels(first: 5) { nodes { name } }
         timelineItems(itemTypes: [REVIEW_REQUESTED_EVENT], last: 20) {
@@ -41,6 +41,19 @@ query($login: String!) {
   viewer {
     organizations(first: 100) {
       nodes { login teams(first: 100, userLogins: [$login]) { nodes { slug } } }
+    }
+  }
+}`;
+
+const POOL_QUERY = `
+query($cursor: String) {
+  viewer {
+    organizations(first: 100) {
+      nodes { login }
+    }
+    repositories(first: 100, after: $cursor, affiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER], orderBy: { field: NAME, direction: ASC }) {
+      pageInfo { hasNextPage endCursor }
+      nodes { nameWithOwner }
     }
   }
 }`;
@@ -143,12 +156,34 @@ async function fetchReviewRequests(token) {
       isDraft: node.isDraft,
       createdAt: node.createdAt,
       repo: node.repository?.name ?? '',
+      repoFullName: node.repository?.nameWithOwner ?? '',
       author: node.author?.login ?? 'ghost',
       avatarUrl: node.author?.avatarUrl ?? null,
       labels: (node.labels?.nodes ?? []).filter(Boolean).map((label) => label.name),
       timelineItems: node.timelineItems,
     }));
   return { prs, warning };
+}
+
+async function fetchRepoPool(token, { maxPages = 10 } = {}) {
+  const orgs = [];
+  const repos = [];
+  let cursor = null;
+  let truncated = false;
+  for (let page = 0; page < maxPages; page++) {
+    const { data } = await graphql(token, POOL_QUERY, { cursor });
+    const viewer = data?.viewer;
+    if (!viewer) throw new GitHubError('graphql', 'GitHub did not return your repositories.');
+    if (page === 0) {
+      for (const org of viewer.organizations?.nodes ?? []) if (org?.login) orgs.push(org.login);
+    }
+    for (const repo of viewer.repositories?.nodes ?? []) if (repo?.nameWithOwner) repos.push(repo.nameWithOwner);
+    const info = viewer.repositories?.pageInfo;
+    if (!info?.hasNextPage) break;
+    cursor = info.endCursor;
+    if (page === maxPages - 1) truncated = true;
+  }
+  return { orgs: orgs.sort(), repos: repos.sort(), truncated };
 }
 
 async function fetchLatestRelease(token) {
@@ -193,4 +228,4 @@ async function readGhAccount() {
   return token ? { token, login } : null;
 }
 
-module.exports = { GitHubError, fetchViewer, fetchTeams, fetchReviewRequests, fetchLatestRelease, readGhAccount };
+module.exports = { GitHubError, fetchViewer, fetchTeams, fetchRepoPool, fetchReviewRequests, fetchLatestRelease, readGhAccount };
