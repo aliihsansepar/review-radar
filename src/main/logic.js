@@ -86,6 +86,11 @@ function buildRows(prs, { now, yellowDays, redDays, unseen }) {
     .sort((a, b) => b.ageMs - a.ageMs);
 }
 
+function matchesFilter(repoFullName, visibleRepos) {
+  if (!visibleRepos || visibleRepos.size === 0) return true;
+  return visibleRepos.has(String(repoFullName ?? '').toLowerCase());
+}
+
 function isNewerVersion(latest, current) {
   const parse = (version) =>
     String(version)
@@ -113,4 +118,5 @@ module.exports = {
   trayState,
   buildRows,
   isNewerVersion,
+  matchesFilter,
 };

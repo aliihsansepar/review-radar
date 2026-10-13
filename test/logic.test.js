@@ -12,6 +12,7 @@ const {
   trayState,
   buildRows,
   isNewerVersion,
+  matchesFilter,
 } = require('../src/main/logic');
 
 const event = (createdAt, requestedReviewer) => ({ createdAt, requestedReviewer });
@@ -190,4 +191,19 @@ test('isNewerVersion compares release tags number by number', () => {
   assert.equal(isNewerVersion('v1.0.0', '1.0.0'), false);
   assert.equal(isNewerVersion('1.0', '1.0.0'), false);
   assert.equal(isNewerVersion('v0.9.9', '1.0.0'), false);
+});
+
+test('matchesFilter shows everything when nothing is selected', () => {
+  assert.equal(matchesFilter('acme/web', new Set()), true);
+  assert.equal(matchesFilter('acme/web', undefined), true);
+});
+
+test('matchesFilter keeps only the selected repositories', () => {
+  assert.equal(matchesFilter('acme/web', new Set(['acme/web'])), true);
+  assert.equal(matchesFilter('acme/api', new Set(['acme/web'])), false);
+});
+
+test('matchesFilter ignores case and tolerates a missing repo name', () => {
+  assert.equal(matchesFilter('Acme/Web', new Set(['acme/web'])), true);
+  assert.equal(matchesFilter(undefined, new Set(['acme/web'])), false);
 });
