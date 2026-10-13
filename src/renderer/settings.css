@@ -36,6 +36,17 @@ h2 {
   color: var(--text-dim);
 }
 
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.switch:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .dot {
   display: inline-block;
   width: 8px;

@@ -3,6 +3,7 @@ const fields = {
   redDays: document.getElementById('red-days'),
   intervalMinutes: document.getElementById('interval'),
   notify: document.getElementById('notify'),
+  sound: document.getElementById('sound'),
   includeDrafts: document.getElementById('include-drafts'),
   launchAtLogin: document.getElementById('launch-at-login'),
 };
@@ -31,6 +32,8 @@ function fill(settings) {
   fields.redDays.value = settings.redDays;
   fields.intervalMinutes.value = String(settings.intervalMinutes);
   fields.notify.checked = settings.notify;
+  fields.sound.checked = settings.sound;
+  fields.sound.disabled = !settings.notify;
   fields.includeDrafts.checked = settings.includeDrafts;
   fields.launchAtLogin.checked = settings.launchAtLogin;
   freshLabel.textContent = `under ${plural(settings.yellowDays, 'day')}`;
@@ -42,6 +45,7 @@ function collect() {
     redDays: fields.redDays.valueAsNumber,
     intervalMinutes: Number(fields.intervalMinutes.value),
     notify: fields.notify.checked,
+    sound: fields.sound.checked,
     includeDrafts: fields.includeDrafts.checked,
     launchAtLogin: fields.launchAtLogin.checked,
   };
@@ -62,10 +66,13 @@ async function save() {
     return;
   }
   showError(null);
+  fields.sound.disabled = !result.settings.notify;
   freshLabel.textContent = `under ${plural(result.settings.yellowDays, 'day')}`;
 }
 
 for (const field of Object.values(fields)) field.addEventListener('change', save);
+
+document.getElementById('preview-sound').addEventListener('click', () => window.radar.previewSound());
 
 document.getElementById('sign-out').addEventListener('click', () => window.radar.signOut());
 

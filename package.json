@@ -38,6 +38,12 @@
         "LSUIElement": true
       }
     },
-    "afterPack": "scripts/afterPack.js"
+    "afterPack": "scripts/afterPack.js",
+    "extraResources": [
+      {
+        "from": "assets/new-request.mp3",
+        "to": "new-request.mp3"
+      }
+    ]
   }
 }

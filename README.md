@@ -14,7 +14,7 @@ Built with Electron. No runtime dependencies.
 - **Ages that mean something.** The age counts from the latest review request sent to you or one of your teams, not from when the pull request was opened. If there is no such request, it falls back to the opening time.
 - **Color as a nudge.** Pills turn yellow after 2 days and red after 5. You can change both in Settings.
 - **A menu bar icon you can read at a glance.** It shows the count, takes the color of the oldest request, and turns blue with a `+N` badge when something new arrives.
-- **Notifications.** One banner per new review request, and a 9:00 summary when something is past the red threshold.
+- **Notifications.** One banner per new review request, and a 9:00 summary when something is past the red threshold. You can also turn on a short chime for new requests in Settings and preview it there.
 - **Keyboard friendly.** `⌘R` refreshes, `⌘O` opens your review queue on GitHub, `⌘,` opens Settings, `Esc` closes the panel.
 
 ### Menu bar icon

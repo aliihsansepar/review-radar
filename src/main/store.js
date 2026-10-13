@@ -7,6 +7,7 @@ const DEFAULTS = {
   redDays: 5,
   intervalMinutes: 2,
   notify: true,
+  sound: false,
   includeDrafts: true,
   login: null,
   scopes: null,

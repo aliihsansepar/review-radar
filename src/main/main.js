@@ -1,4 +1,5 @@
 const path = require('node:path');
+const { execFile } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
 const {
   app,
@@ -26,6 +27,9 @@ const RENDERER_URL = `${pathToFileURL(RENDERER).href}/`;
 const PRELOAD = path.join(__dirname, '..', 'preload.js');
 const MAX_TRAY_IMAGE_LENGTH = 500_000;
 const TRAY_REOPEN_GUARD_MS = 250;
+const SOUND = app.isPackaged
+  ? path.join(process.resourcesPath, 'new-request.mp3')
+  : path.join(__dirname, '..', '..', 'assets', 'new-request.mp3');
 
 let tray = null;
 let panel = null;
@@ -89,9 +93,15 @@ function push() {
   if (panel && !panel.isDestroyed()) panel.webContents.send('state', currentView());
 }
 
-function notify({ title, subtitle, body, url }) {
+function playSound() {
+  execFile('/usr/bin/afplay', [SOUND], (error) => {
+    if (error) console.warn('Could not play the notification sound:', error.message);
+  });
+}
+
+function notify({ title, subtitle, body, url, silent = false }) {
   if (!Notification.isSupported()) return;
-  const notification = new Notification({ title, subtitle, body, silent: false });
+  const notification = new Notification({ title, subtitle, body, silent });
   liveNotifications.add(notification);
   const release = () => liveNotifications.delete(notification);
   notification.on('click', () => {
@@ -117,9 +127,17 @@ function recordRequests() {
   }
   store.update({ known: Object.fromEntries(tracked.known), unseen, initialized: true, knownWithTeams: hasTeams });
   if (!settings.notify) return;
-  for (const pr of tracked.fresh.filter(isVisible)) {
-    notify({ title: 'New review request', subtitle: `${pr.repo} #${pr.number} · ${pr.author}`, body: pr.title, url: pr.url });
+  const fresh = tracked.fresh.filter(isVisible);
+  for (const pr of fresh) {
+    notify({
+      title: 'New review request',
+      subtitle: `${pr.repo} #${pr.number} · ${pr.author}`,
+      body: pr.title,
+      url: pr.url,
+      silent: true,
+    });
   }
+  if (fresh.length > 0 && settings.sound) playSound();
 }
 
 async function poll() {
@@ -315,7 +333,7 @@ function showSettings() {
   }
   settingsWindow = new BrowserWindow({
     width: 460,
-    height: 595,
+    height: 642,
     resizable: false,
     minimizable: false,
     maximizable: false,
@@ -341,6 +359,7 @@ function settingsView() {
     intervalMinutes: settings.intervalMinutes,
     intervals: INTERVALS,
     notify: settings.notify,
+    sound: settings.sound,
     includeDrafts: settings.includeDrafts,
     launchAtLogin: app.getLoginItemSettings().openAtLogin,
     version: app.getVersion(),
@@ -385,6 +404,7 @@ function registerIpc() {
   on('open-settings', showSettings);
   on('quit', () => app.quit());
   on('close-panel', hidePanel);
+  on('preview-sound', playSound);
 
   on('panel-height', (_event, height) => {
     const value = Math.min(Math.max(Math.ceil(Number(height) || 0), 120), PANEL_MAX_HEIGHT);
@@ -413,6 +433,7 @@ function registerIpc() {
       redDays: Number(input.redDays),
       intervalMinutes: Number(input.intervalMinutes),
       notify: Boolean(input.notify),
+      sound: Boolean(input.sound),
       includeDrafts: Boolean(input.includeDrafts),
     });
     if (app.getLoginItemSettings().openAtLogin !== Boolean(input.launchAtLogin)) {

@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('radar', {
   openQueue: () => ipcRenderer.send('open-queue'),
   openSettings: () => ipcRenderer.send('open-settings'),
   closePanel: () => ipcRenderer.send('close-panel'),
+  previewSound: () => ipcRenderer.send('preview-sound'),
   quit: () => ipcRenderer.send('quit'),
   setPanelHeight: (height) => ipcRenderer.send('panel-height', height),
   setTrayImage: (image) => ipcRenderer.send('tray-image', image),
