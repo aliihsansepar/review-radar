@@ -193,8 +193,15 @@ kbd {
   border-bottom: 1px solid var(--separator);
 }
 
+.filter-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .filter input[type='search'] {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 5px 8px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;

@@ -1,4 +1,4 @@
-window.mountFilterPanel = function mountFilterPanel({ list, search, empty, onChange }) {
+window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refresh, onChange }) {
   let view = { orgs: [], loose: [], missing: [], shownCount: 0, truncated: false };
 
   function selection() {
@@ -20,7 +20,6 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, onCha
       if (next && Array.isArray(next.orgs)) {
         view = next;
         draw();
-        if (onChange) onChange();
       } else if (next && next.error && empty) {
         empty.hidden = false;
         empty.textContent = next.error;
@@ -90,8 +89,9 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, onCha
     const nodes = [];
     const missing = view.missing.filter(matches);
     if (missing.length > 0) {
-      nodes.push(heading('No longer available'));
-      for (const name of missing) nodes.push(row(name, true, 'missing'));
+      const unreadable = view.ok === false;
+      nodes.push(heading(unreadable ? 'Selected' : 'No longer available'));
+      for (const name of missing) nodes.push(row(name, true, unreadable ? undefined : 'missing'));
     }
     const orgs = view.orgs.map(orgGroup).filter(Boolean);
     if (orgs.length > 0) {
@@ -109,10 +109,11 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, onCha
       empty.hidden = !message;
       empty.textContent = message;
     }
+    if (onChange) onChange();
   }
 
-  function load(refresh) {
-    return window.radar.getFilterView(Boolean(refresh)).then((next) => {
+  function load(refreshPool) {
+    return window.radar.getFilterView(Boolean(refreshPool)).then((next) => {
       if (next && Array.isArray(next.orgs)) view = next;
       else if (next && next.error) view = { ...view, error: next.error };
       draw();
@@ -120,5 +121,6 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, onCha
   }
 
   search.addEventListener('input', draw);
+  if (refresh) refresh.addEventListener('click', () => load(true));
   return { load };
 };

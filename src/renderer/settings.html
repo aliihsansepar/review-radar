@@ -30,7 +30,10 @@
         <h2>Filter</h2>
         <div class="group">
           <div class="item">
-            <input type="search" id="filter-search" placeholder="Search repositories…" aria-label="Search repositories" />
+            <div class="filter-head">
+              <input type="search" id="filter-search" placeholder="Search repositories…" aria-label="Search repositories" />
+              <button class="link" id="filter-refresh" type="button">Reload</button>
+            </div>
           </div>
           <div class="filter-list" id="filter-list"></div>
           <p class="filter-status dim" id="filter-status" role="status" hidden></p>

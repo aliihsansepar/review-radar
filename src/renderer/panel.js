@@ -103,6 +103,7 @@ const filterPanel = window.mountFilterPanel({
   list: filterList,
   search: filterSearch,
   empty: filterStatus,
+  refresh: document.getElementById('filter-refresh'),
   onChange: measure,
 });
 
@@ -114,8 +115,6 @@ filterToggle.addEventListener('click', () => {
   if (opening) filterPanel.load(false);
   measure();
 });
-
-filterSearch.addEventListener('input', measure);
 
 refreshButton.addEventListener('click', () => window.radar.refresh());
 document.getElementById('open-queue').addEventListener('click', () => window.radar.openQueue());

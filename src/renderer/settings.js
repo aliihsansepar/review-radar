@@ -121,5 +121,6 @@ window
     list: document.getElementById('filter-list'),
     search: document.getElementById('filter-search'),
     empty: document.getElementById('filter-status'),
+    refresh: document.getElementById('filter-refresh'),
   })
   .load(false);

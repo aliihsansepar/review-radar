@@ -162,8 +162,16 @@ select {
   margin: 6px 2px 0;
 }
 
+.filter-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
 #filter-search {
   flex: 1;
+  min-width: 0;
   padding: 5px 8px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
