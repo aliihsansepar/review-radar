@@ -209,7 +209,45 @@ select {
 }
 
 .filter-row.org {
+  flex: 1;
+  min-width: 0;
   color: var(--text);
+}
+
+.filter-org {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.filter-caret {
+  flex: none;
+  width: 16px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-faint);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.filter-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-count {
+  flex: none;
+  margin-left: auto;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.filter-children {
+  margin-left: 15px;
+  padding-left: 7px;
+  border-left: 1px solid var(--separator);
 }
 
 .filter-row.missing {

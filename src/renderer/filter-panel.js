@@ -1,5 +1,6 @@
 window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refresh, onChange }) {
   let view = { orgs: [], loose: [], missing: [], shownCount: 0, truncated: false };
+  const overrides = new Map();
 
   function selection() {
     const names = [...view.missing];
@@ -35,6 +36,7 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
   }
 
   function toggleOrg(org) {
+    overrides.delete(org.login);
     const names = new Set(selection());
     const clearing = org.state === 'all';
     for (const repo of org.repos) {
@@ -65,11 +67,29 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
   }
 
   function orgGroup(org) {
-    const loginMatches = matches(org.login);
-    const repos = loginMatches ? org.repos : org.repos.filter((repo) => matches(repo.nameWithOwner));
+    const query = search.value.trim().toLowerCase();
+    const loginMatches = !query || org.login.toLowerCase().includes(query);
+    const repos = loginMatches
+      ? org.repos
+      : org.repos.filter((repo) => repo.nameWithOwner.toLowerCase().includes(query));
     if (!loginMatches && repos.length === 0) return null;
+
+    const expanded = overrides.has(org.login) ? overrides.get(org.login) : Boolean(query) || org.state !== 'none';
     const group = document.createElement('div');
     group.className = 'filter-group';
+
+    const host = document.createElement('div');
+    host.className = 'filter-org';
+    const caret = document.createElement('button');
+    caret.type = 'button';
+    caret.className = 'filter-caret';
+    caret.textContent = expanded ? '▾' : '▸';
+    caret.setAttribute('aria-expanded', String(expanded));
+    caret.addEventListener('click', () => {
+      overrides.set(org.login, !expanded);
+      draw();
+    });
+
     const label = document.createElement('label');
     label.className = 'filter-row org';
     const box = document.createElement('input');
@@ -78,10 +98,21 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     box.indeterminate = org.state === 'some';
     box.addEventListener('change', () => toggleOrg(org));
     const text = document.createElement('span');
+    text.className = 'filter-name';
     text.textContent = org.login;
-    label.append(box, text);
-    group.append(label);
-    for (const repo of repos) group.append(row(repo.nameWithOwner, repo.selected));
+    const count = document.createElement('span');
+    count.className = 'filter-count';
+    count.textContent = `${org.repos.filter((repo) => repo.selected).length}/${org.repos.length}`;
+    label.append(box, text, count);
+    host.append(caret, label);
+    group.append(host);
+
+    if (expanded) {
+      const children = document.createElement('div');
+      children.className = 'filter-children';
+      for (const repo of repos) children.append(row(repo.nameWithOwner, repo.selected));
+      group.append(children);
+    }
     return group;
   }
 
