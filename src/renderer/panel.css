@@ -182,3 +182,75 @@ kbd {
   font: inherit;
   color: var(--text-faint);
 }
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.filter {
+  padding: 8px;
+  border-bottom: 1px solid var(--separator);
+}
+
+.filter input[type='search'] {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font: inherit;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.filter-list {
+  margin-top: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.filter-label {
+  padding: 6px 6px 2px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.filter-row:hover {
+  background: var(--surface-hover);
+}
+
+.filter-row.org {
+  color: var(--text);
+}
+
+.filter-row.missing {
+  color: var(--yellow);
+}
+
+.filter-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-status {
+  margin: 6px 2px 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+#panel.filter-open #list {
+  max-height: 200px;
+}

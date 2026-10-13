@@ -17,8 +17,16 @@
           <div class="title">Waiting on your review</div>
           <div class="subtitle" id="subtitle"></div>
         </div>
-        <button class="link" id="refresh" type="button">Refresh</button>
+        <div class="header-actions">
+          <button class="link" id="filter-toggle" type="button" aria-expanded="false" aria-controls="filter">Filter</button>
+          <button class="link" id="refresh" type="button">Refresh</button>
+        </div>
       </header>
+      <section class="filter" id="filter" hidden>
+        <input type="search" id="filter-search" placeholder="Search repositories…" aria-label="Search repositories" />
+        <div class="filter-list" id="filter-list"></div>
+        <p class="filter-status" id="filter-status" role="status" hidden></p>
+      </section>
       <div class="error-row" id="error" role="alert" hidden></div>
       <ul id="list" aria-label="Pull requests waiting on your review"></ul>
       <div class="empty" id="empty" hidden>Nothing waiting on you.</div>
@@ -30,6 +38,7 @@
     </div>
     <script src="avatar.js"></script>
     <script src="tray-icon.js"></script>
+    <script src="filter-panel.js"></script>
     <script src="panel.js"></script>
   </body>
 </html>
