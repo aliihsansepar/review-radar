@@ -45,13 +45,29 @@ query($login: String!) {
   }
 }`;
 
-const POOL_QUERY = `
-query($cursor: String) {
+const ORGS_QUERY = `
+query {
   viewer {
     organizations(first: 100) {
       nodes { login }
     }
-    repositories(first: 100, after: $cursor, affiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER], orderBy: { field: NAME, direction: ASC }) {
+  }
+}`;
+
+const VIEWER_REPOS_QUERY = `
+query($cursor: String) {
+  viewer {
+    repositories(first: 100, after: $cursor, affiliations: [OWNER, COLLABORATOR], orderBy: { field: NAME, direction: ASC }) {
+      pageInfo { hasNextPage endCursor }
+      nodes { nameWithOwner }
+    }
+  }
+}`;
+
+const ORG_REPOS_QUERY = `
+query($login: String!, $cursor: String) {
+  organization(login: $login) {
+    repositories(first: 100, after: $cursor, orderBy: { field: NAME, direction: ASC }) {
       pageInfo { hasNextPage endCursor }
       nodes { nameWithOwner }
     }
@@ -165,25 +181,40 @@ async function fetchReviewRequests(token) {
   return { prs, warning };
 }
 
-async function fetchRepoPool(token, { maxPages = 10 } = {}) {
-  const orgs = [];
-  const repos = [];
+async function collectRepos(token, query, variables, read, maxPages) {
+  const names = [];
   let cursor = null;
-  let truncated = false;
   for (let page = 0; page < maxPages; page++) {
-    const { data } = await graphql(token, POOL_QUERY, { cursor });
-    const viewer = data?.viewer;
-    if (!viewer) throw new GitHubError('graphql', 'GitHub did not return your repositories.');
-    if (page === 0) {
-      for (const org of viewer.organizations?.nodes ?? []) if (org?.login) orgs.push(org.login);
-    }
-    for (const repo of viewer.repositories?.nodes ?? []) if (repo?.nameWithOwner) repos.push(repo.nameWithOwner);
-    const info = viewer.repositories?.pageInfo;
-    if (!info?.hasNextPage) break;
-    cursor = info.endCursor;
-    if (page === maxPages - 1) truncated = true;
+    const { data } = await graphql(token, query, { ...variables, cursor });
+    const connection = read(data);
+    if (!connection) return { names, truncated: false };
+    for (const repo of connection.nodes ?? []) if (repo?.nameWithOwner) names.push(repo.nameWithOwner);
+    if (!connection.pageInfo?.hasNextPage) return { names, truncated: false };
+    cursor = connection.pageInfo.endCursor;
+    if (page === maxPages - 1) return { names, truncated: true };
   }
-  return { orgs: orgs.sort(), repos: repos.sort(), truncated };
+  return { names, truncated: false };
+}
+
+async function fetchRepoPool(token, { maxPages = 10 } = {}) {
+  const { data } = await graphql(token, ORGS_QUERY);
+  const orgs = (data?.viewer?.organizations?.nodes ?? [])
+    .filter((org) => org?.login)
+    .map((org) => org.login)
+    .sort();
+
+  const repos = new Set();
+  const mine = await collectRepos(token, VIEWER_REPOS_QUERY, {}, (view) => view?.viewer?.repositories, maxPages);
+  mine.names.forEach((name) => repos.add(name));
+
+  let truncated = mine.truncated;
+  for (const login of orgs) {
+    const read = (view) => view?.organization?.repositories;
+    const found = await collectRepos(token, ORG_REPOS_QUERY, { login }, read, maxPages);
+    found.names.forEach((name) => repos.add(name));
+    truncated = truncated || found.truncated;
+  }
+  return { orgs, repos: [...repos].sort(), truncated };
 }
 
 async function fetchLatestRelease(token) {

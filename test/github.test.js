@@ -2,46 +2,65 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const github = require('../src/main/github');
 
-function stubFetch(pages) {
+function stub(routes) {
   global.fetch = async (_url, options) => {
-    const body = JSON.parse(options.body);
-    const page = pages[body.variables.cursor ?? null];
+    const { query, variables } = JSON.parse(options.body);
+    let data;
+    if (query.includes('organization(login:')) data = routes.org[variables.login][variables.cursor ?? null];
+    else if (query.includes('organizations(first:')) data = routes.orgs;
+    else data = routes.viewer[variables.cursor ?? null];
     return {
       status: 200,
       ok: true,
       headers: { get: () => null, has: () => false },
-      json: async () => ({ data: page }),
+      json: async () => ({ data }),
     };
   };
 }
 
-const page = (names, hasNextPage, endCursor) => ({
-  viewer: {
-    organizations: names.orgs ? { nodes: names.orgs.map((login) => ({ login })) } : { nodes: [] },
-    repositories: {
-      pageInfo: { hasNextPage, endCursor },
-      nodes: names.repos.map((nameWithOwner) => ({ nameWithOwner })),
-    },
-  },
+const connection = (names, hasNextPage, endCursor) => ({
+  pageInfo: { hasNextPage, endCursor },
+  nodes: names.map((nameWithOwner) => ({ nameWithOwner })),
 });
 
-test('fetchRepoPool walks every page and collects orgs and repos', async () => {
-  stubFetch({
-    null: page({ orgs: ['acme'], repos: ['acme/web'] }, true, 'c1'),
-    c1: page({ repos: ['me/tool'] }, false, null),
+test('fetchRepoPool collects the viewer repos and every organization repos', async () => {
+  stub({
+    orgs: { viewer: { organizations: { nodes: [{ login: 'acme' }, { login: 'globex' }] } } },
+    viewer: { null: { viewer: { repositories: connection(['me/tool'], false, null) } } },
+    org: {
+      acme: {
+        null: { organization: { repositories: connection(['acme/web'], true, 'c1') } },
+        c1: { organization: { repositories: connection(['acme/api'], false, null) } },
+      },
+      globex: { null: { organization: { repositories: connection(['globex/x'], false, null) } } },
+    },
   });
   const pool = await github.fetchRepoPool('t');
-  assert.deepEqual(pool.orgs, ['acme']);
-  assert.deepEqual(pool.repos, ['acme/web', 'me/tool']);
+  assert.deepEqual(pool.orgs, ['acme', 'globex']);
+  assert.deepEqual(pool.repos, ['acme/api', 'acme/web', 'globex/x', 'me/tool']);
   assert.equal(pool.truncated, false);
 });
 
-test('fetchRepoPool stops at maxPages and reports truncation', async () => {
-  stubFetch({
-    null: page({ repos: ['a/1'] }, true, 'c1'),
-    c1: page({ repos: ['a/2'] }, true, 'c2'),
+test('fetchRepoPool stops at maxPages per connection and reports truncation', async () => {
+  stub({
+    orgs: { viewer: { organizations: { nodes: [{ login: 'acme' }] } } },
+    viewer: { null: { viewer: { repositories: connection(['me/1'], true, 'v1') } } },
+    org: { acme: { null: { organization: { repositories: connection(['acme/1'], true, 'c1') } } } },
   });
-  const pool = await github.fetchRepoPool('t', { maxPages: 2 });
-  assert.deepEqual(pool.repos, ['a/1', 'a/2']);
+  const pool = await github.fetchRepoPool('t', { maxPages: 1 });
+  assert.deepEqual(pool.repos, ['acme/1', 'me/1']);
   assert.equal(pool.truncated, true);
+});
+
+test('fetchRepoPool skips an organization it cannot read', async () => {
+  stub({
+    orgs: { viewer: { organizations: { nodes: [{ login: 'acme' }, { login: 'secret' }] } } },
+    viewer: { null: { viewer: { repositories: connection([], false, null) } } },
+    org: {
+      acme: { null: { organization: { repositories: connection(['acme/web'], false, null) } } },
+      secret: { null: { organization: null } },
+    },
+  });
+  const pool = await github.fetchRepoPool('t');
+  assert.deepEqual(pool.repos, ['acme/web']);
 });
