@@ -42,6 +42,7 @@ let token = null;
 let session = 0;
 let activePoll = null;
 let teams = null;
+let repoPool = null;
 let prs = [];
 let lastError = null;
 let summaryDue = false;
@@ -66,8 +67,12 @@ function webPreferences() {
   return { preload: PRELOAD, contextIsolation: true, sandbox: true, nodeIntegration: false };
 }
 
+function visibleRepos() {
+  return new Set((store.get().filters?.repos ?? []).map((repo) => repo.toLowerCase()));
+}
+
 function isVisible(pr) {
-  return store.get().includeDrafts || !pr.isDraft;
+  return (store.get().includeDrafts || !pr.isDraft) && logic.matchesFilter(pr.repoFullName, visibleRepos());
 }
 
 function currentView() {
@@ -87,6 +92,26 @@ function currentView() {
     oldest: rows.length > 0 ? logic.formatAgeLong(rows[0].ageMs) : null,
     tray: logic.trayState(rows, rows.filter((row) => unseen.has(row.key)).length),
   };
+}
+
+async function loadPool(refresh) {
+  if (repoPool && !refresh) return repoPool;
+  repoPool = await github.fetchRepoPool(token);
+  return repoPool;
+}
+
+async function filterView(refresh) {
+  const selected = store.get().filters?.repos ?? [];
+  try {
+    return { ok: true, ...logic.buildFilterList(await loadPool(refresh), selected) };
+  } catch (error) {
+    console.error('Could not load the repository pool:', error);
+    return {
+      ok: false,
+      error: error.message || 'Could not load your repositories.',
+      ...logic.buildFilterList({ orgs: [], repos: [] }, selected),
+    };
+  }
 }
 
 function push() {
@@ -185,6 +210,7 @@ function startSession(newToken) {
   session += 1;
   token = newToken;
   teams = null;
+  repoPool = null;
   prs = [];
   lastError = null;
   shownAsNew = new Set();
@@ -442,6 +468,19 @@ function registerIpc() {
     if (previousInterval !== store.get().intervalMinutes) schedulePolling();
     push();
     return { ok: true, settings: settingsView() };
+  });
+
+  handle('filter:view', (_event, refresh) => filterView(Boolean(refresh)));
+
+  handle('filter:save', (_event, repos) => {
+    const valid =
+      Array.isArray(repos) &&
+      repos.length <= 5000 &&
+      repos.every((repo) => typeof repo === 'string' && /^[^\s/]+\/[^\s/]+$/.test(repo));
+    if (!valid) return { ok: false, error: 'The filter list is not valid.' };
+    store.update({ filters: { repos: [...new Set(repos)] } });
+    push();
+    return filterView(false);
   });
 
   handle('sign-out', () => {

@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('radar', {
   setTrayImage: (image) => ipcRenderer.send('tray-image', image),
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (settings) => ipcRenderer.invoke('settings:save', settings),
+  getFilterView: (refresh) => ipcRenderer.invoke('filter:view', Boolean(refresh)),
+  saveFilter: (repos) => ipcRenderer.invoke('filter:save', repos),
   signOut: () => ipcRenderer.invoke('sign-out'),
   connect: (token) => ipcRenderer.invoke('connect', token),
   checkUpdate: () => ipcRenderer.invoke('check-update'),
