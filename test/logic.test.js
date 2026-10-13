@@ -13,6 +13,7 @@ const {
   buildRows,
   isNewerVersion,
   matchesFilter,
+  buildFilterList,
 } = require('../src/main/logic');
 
 const event = (createdAt, requestedReviewer) => ({ createdAt, requestedReviewer });
@@ -206,4 +207,40 @@ test('matchesFilter keeps only the selected repositories', () => {
 test('matchesFilter ignores case and tolerates a missing repo name', () => {
   assert.equal(matchesFilter('Acme/Web', new Set(['acme/web'])), true);
   assert.equal(matchesFilter(undefined, new Set(['acme/web'])), false);
+});
+
+const POOL = { orgs: ['acme', 'globex'], repos: ['acme/web', 'acme/api', 'me/tool'], truncated: false };
+
+test('buildFilterList groups repos by org and flags tri-state', () => {
+  const list = buildFilterList(POOL, ['acme/web']);
+  assert.deepEqual(list.orgs, [
+    {
+      login: 'acme',
+      state: 'some',
+      repos: [
+        { nameWithOwner: 'acme/api', selected: false },
+        { nameWithOwner: 'acme/web', selected: true },
+      ],
+    },
+  ]);
+  assert.deepEqual(list.loose, [{ nameWithOwner: 'me/tool', selected: false }]);
+  assert.equal(list.shownCount, 1);
+});
+
+test('buildFilterList reports all/none org states', () => {
+  assert.equal(buildFilterList(POOL, ['acme/web', 'acme/api']).orgs[0].state, 'all');
+  assert.equal(buildFilterList(POOL, []).orgs[0].state, 'none');
+});
+
+test('buildFilterList surfaces checked entries missing from the pool', () => {
+  const list = buildFilterList(POOL, ['acme/web', 'old/repo']);
+  assert.deepEqual(list.missing, ['old/repo']);
+  assert.equal(list.shownCount, 2);
+});
+
+test('buildFilterList matches case-insensitively and passes truncation through', () => {
+  const list = buildFilterList({ ...POOL, truncated: true }, ['Acme/Web']);
+  assert.equal(list.orgs[0].repos.find((repo) => repo.nameWithOwner === 'acme/web').selected, true);
+  assert.deepEqual(list.missing, []);
+  assert.equal(list.truncated, true);
 });

@@ -91,6 +91,36 @@ function matchesFilter(repoFullName, visibleRepos) {
   return visibleRepos.has(String(repoFullName ?? '').toLowerCase());
 }
 
+function buildFilterList(pool, selectedRepos) {
+  const selected = new Set(selectedRepos.map((name) => name.toLowerCase()));
+  const orgLogins = new Set((pool.orgs ?? []).map((login) => login.toLowerCase()));
+  const byLogin = new Map();
+  const loose = [];
+  for (const nameWithOwner of pool.repos ?? []) {
+    const owner = nameWithOwner.split('/')[0];
+    const entry = { nameWithOwner, selected: selected.has(nameWithOwner.toLowerCase()) };
+    const key = owner.toLowerCase();
+    if (orgLogins.has(key)) {
+      if (!byLogin.has(key)) byLogin.set(key, { login: owner, repos: [] });
+      byLogin.get(key).repos.push(entry);
+    } else {
+      loose.push(entry);
+    }
+  }
+  const stateOf = (repos) => {
+    const on = repos.filter((repo) => repo.selected).length;
+    if (on === repos.length) return 'all';
+    return on === 0 ? 'none' : 'some';
+  };
+  const byName = (a, b) => a.nameWithOwner.localeCompare(b.nameWithOwner);
+  const poolNames = new Set((pool.repos ?? []).map((name) => name.toLowerCase()));
+  const orgs = [...byLogin.values()]
+    .map((group) => ({ login: group.login, state: stateOf(group.repos), repos: group.repos.sort(byName) }))
+    .sort((a, b) => a.login.localeCompare(b.login));
+  const missing = selectedRepos.filter((name) => !poolNames.has(name.toLowerCase())).sort();
+  return { orgs, loose: loose.sort(byName), missing, shownCount: selectedRepos.length, truncated: Boolean(pool.truncated) };
+}
+
 function isNewerVersion(latest, current) {
   const parse = (version) =>
     String(version)
@@ -119,4 +149,5 @@ module.exports = {
   buildRows,
   isNewerVersion,
   matchesFilter,
+  buildFilterList,
 };
