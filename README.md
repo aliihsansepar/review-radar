@@ -11,6 +11,7 @@ Built with Electron. No runtime dependencies.
 ## What it does
 
 - **Oldest first.** The panel lists every open pull request that asks for your review, with repo, author, labels and a colored age pill. Click a row to open it on GitHub.
+- **Only what you work on.** Limit the app to the repositories you choose, grouped by organization, from the panel or Settings. An empty selection shows everything, and the menu bar count and notifications follow the same filter.
 - **Ages that mean something.** The age counts from the latest review request sent to you or one of your teams, not from when the pull request was opened. If there is no such request, it falls back to the opening time.
 - **Color as a nudge.** Pills turn yellow after 2 days and red after 5. You can change both in Settings.
 - **A menu bar icon you can read at a glance.** It shows the count, takes the color of the oldest request, and turns blue with a `+N` badge when something new arrives.
