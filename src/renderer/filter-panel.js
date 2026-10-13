@@ -1,6 +1,8 @@
 window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refresh, chips, summary, clear, onChange }) {
   let view = { groups: [], missing: [], truncated: false };
   let seq = 0;
+  let rendered = 0;
+  let lastShape = '';
   const overrides = new Map();
 
   function selectedNames() {
@@ -52,6 +54,7 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
   }
 
   function repoRow(repo, className) {
+    rendered += 1;
     const box = document.createElement('input');
     box.type = 'checkbox';
     box.checked = repo.selected;
@@ -99,6 +102,7 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
 
     const label = document.createElement('label');
     label.className = 'filter-row owner';
+    rendered += 1;
     const box = document.createElement('input');
     box.type = 'checkbox';
     box.checked = group.state === 'all';
@@ -134,7 +138,7 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     button.className = 'filter-chip';
     button.title = name;
     const text = document.createElement('span');
-    text.textContent = name.split('/')[1] ?? name;
+    text.textContent = name;
     const cross = document.createElement('span');
     cross.className = 'filter-chip-x';
     cross.textContent = '✕';
@@ -145,6 +149,7 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
 
   function draw() {
     const query = search.value.trim().toLowerCase();
+    rendered = 0;
     const nodes = [];
     const missing = view.missing.filter((name) => matches(name, query));
     if (missing.length > 0) {
@@ -158,22 +163,29 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     list.replaceChildren(...nodes);
 
     const names = selectedNames();
+    const total = view.groups.reduce((count, group) => count + group.repos.length, 0);
     if (chips) {
       chips.replaceChildren(...names.map(chipFor));
       chips.hidden = names.length === 0;
     }
-    if (summary) {
-      const total = view.groups.reduce((count, group) => count + group.repos.length, 0);
-      summary.textContent = total > 0 ? `${names.length} of ${total} repositories shown` : '';
-    }
+    if (summary) summary.textContent = total > 0 ? `${names.length} of ${total} repositories shown` : '';
     if (clear) clear.hidden = names.length === 0;
 
     if (empty) {
-      const message = view.error ? view.error : view.truncated ? 'Too many repositories to list — narrow with the search.' : '';
+      const message = view.error
+        ? view.error
+        : view.truncated
+          ? `Too many repositories to list — showing the first ${total}. Narrow with the search.`
+          : '';
       empty.hidden = !message;
       empty.textContent = message;
     }
-    if (onChange) onChange();
+
+    const shape = `${rendered}:${names.length}`;
+    if (onChange && shape !== lastShape) {
+      lastShape = shape;
+      onChange();
+    }
   }
 
   function load(refreshPool) {
