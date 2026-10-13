@@ -94,6 +94,7 @@ function matchesFilter(repoFullName, visibleRepos) {
 function buildFilterList(pool, selectedRepos) {
   const selected = new Set(selectedRepos.map((name) => name.toLowerCase()));
   const orgLogins = new Set((pool.orgs ?? []).map((login) => login.toLowerCase()));
+  const avatars = pool.avatars ?? {};
   const byOwner = new Map();
   for (const nameWithOwner of pool.repos ?? []) {
     const [owner, name] = nameWithOwner.split('/');
@@ -109,7 +110,13 @@ function buildFilterList(pool, selectedRepos) {
   const byName = (a, b) => a.name.localeCompare(b.name);
   const poolNames = new Set((pool.repos ?? []).map((name) => name.toLowerCase()));
   const groups = [...byOwner.values()]
-    .map((group) => ({ owner: group.owner, isOrg: group.isOrg, state: stateOf(group.repos), repos: group.repos.sort(byName) }))
+    .map((group) => ({
+      owner: group.owner,
+      isOrg: group.isOrg,
+      avatarUrl: avatars[group.owner.toLowerCase()] ?? null,
+      state: stateOf(group.repos),
+      repos: group.repos.sort(byName),
+    }))
     .sort((a, b) => Number(b.isOrg) - Number(a.isOrg) || a.owner.localeCompare(b.owner));
   const missing = selectedRepos.filter((name) => !poolNames.has(name.toLowerCase())).sort();
   return { groups, missing, shownCount: selectedRepos.length, truncated: Boolean(pool.truncated) };

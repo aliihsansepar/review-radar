@@ -1,4 +1,4 @@
-window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refresh, onChange }) {
+window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refresh, chips, summary, clear, onChange }) {
   let view = { groups: [], missing: [], shownCount: 0, truncated: false };
   const overrides = new Map();
 
@@ -45,16 +45,17 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     return commit([...names]);
   }
 
-  function row(text, selected, className, value) {
-    const label = document.createElement('label');
-    label.className = className ? `filter-row ${className}` : 'filter-row';
+  function repoRow(repo, className) {
     const box = document.createElement('input');
     box.type = 'checkbox';
-    box.checked = selected;
-    box.addEventListener('change', () => toggle(value ?? text, box.checked));
-    const span = document.createElement('span');
-    span.textContent = text;
-    label.append(box, span);
+    box.checked = repo.selected;
+    box.addEventListener('change', () => toggle(repo.nameWithOwner, box.checked));
+    const label = document.createElement('label');
+    label.className = className ? `filter-row ${className}` : 'filter-row';
+    const text = document.createElement('span');
+    text.className = 'filter-name';
+    text.textContent = repo.name ?? repo.nameWithOwner;
+    label.append(box, text);
     return label;
   }
 
@@ -79,8 +80,8 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     const wrapper = document.createElement('div');
     wrapper.className = 'filter-group';
 
-    const host = document.createElement('div');
-    host.className = 'filter-owner';
+    const team = document.createElement('div');
+    team.className = 'filter-team';
     const caret = document.createElement('button');
     caret.type = 'button';
     caret.className = 'filter-caret';
@@ -92,29 +93,49 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     });
 
     const label = document.createElement('label');
-    label.className = 'filter-row org';
+    label.className = 'filter-row owner';
     const box = document.createElement('input');
     box.type = 'checkbox';
     box.checked = group.state === 'all';
     box.indeterminate = group.state === 'some';
     box.addEventListener('change', () => toggleGroup(group));
-    const text = document.createElement('span');
-    text.className = 'filter-name';
-    text.textContent = group.owner;
+    const avatar = createAvatar(group.owner, group.avatarUrl);
+    avatar.classList.add('filter-avatar');
+    const name = document.createElement('span');
+    name.className = 'filter-name';
+    name.textContent = group.owner;
+    const badge = document.createElement('span');
+    badge.className = group.isOrg ? 'filter-badge' : 'filter-badge user';
+    badge.textContent = group.isOrg ? 'org' : 'user';
     const count = document.createElement('span');
     count.className = 'filter-count';
     count.textContent = `${group.repos.filter((repo) => repo.selected).length}/${group.repos.length}`;
-    label.append(box, text, count);
-    host.append(caret, label);
-    wrapper.append(host);
+    label.append(box, avatar, name, badge, count);
+    team.append(caret, label);
+    wrapper.append(team);
 
     if (expanded) {
       const children = document.createElement('div');
       children.className = 'filter-children';
-      for (const repo of repos) children.append(row(repo.name, repo.selected, undefined, repo.nameWithOwner));
+      for (const repo of repos) children.append(repoRow(repo));
       wrapper.append(children);
     }
     return wrapper;
+  }
+
+  function chipFor(name) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'filter-chip';
+    button.title = name;
+    const text = document.createElement('span');
+    text.textContent = name.split('/')[1] ?? name;
+    const cross = document.createElement('span');
+    cross.className = 'filter-chip-x';
+    cross.textContent = '✕';
+    button.append(text, cross);
+    button.addEventListener('click', () => toggle(name, false));
+    return button;
   }
 
   function draw() {
@@ -123,20 +144,22 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
     if (missing.length > 0) {
       const unreadable = view.ok === false;
       nodes.push(heading(unreadable ? 'Selected' : 'No longer available'));
-      for (const name of missing) nodes.push(row(name, true, unreadable ? undefined : 'missing'));
+      for (const name of missing) nodes.push(repoRow({ nameWithOwner: name, selected: true }, unreadable ? undefined : 'missing'));
     }
-    const built = view.groups.map((group) => ({ group, node: ownerGroup(group) })).filter((item) => item.node);
-    const orgNodes = built.filter((item) => item.group.isOrg).map((item) => item.node);
-    const ownerNodes = built.filter((item) => !item.group.isOrg).map((item) => item.node);
-    if (orgNodes.length > 0) {
-      nodes.push(heading('Organizations'));
-      nodes.push(...orgNodes);
-    }
-    if (ownerNodes.length > 0) {
-      nodes.push(heading('Owners'));
-      nodes.push(...ownerNodes);
-    }
+    nodes.push(...view.groups.map(ownerGroup).filter(Boolean));
     list.replaceChildren(...nodes);
+
+    const names = selection();
+    if (chips) {
+      chips.replaceChildren(...names.map(chipFor));
+      chips.hidden = names.length === 0;
+    }
+    if (summary) {
+      const total = view.groups.reduce((count, group) => count + group.repos.length, 0);
+      summary.textContent = total > 0 ? `${names.length} of ${total} repositories shown` : '';
+    }
+    if (clear) clear.hidden = names.length === 0;
+
     if (empty) {
       const message = view.error ? view.error : view.truncated ? 'Too many repositories to list — narrow with the search.' : '';
       empty.hidden = !message;
@@ -155,5 +178,6 @@ window.mountFilterPanel = function mountFilterPanel({ list, search, empty, refre
 
   search.addEventListener('input', draw);
   if (refresh) refresh.addEventListener('click', () => load(true));
+  if (clear) clear.addEventListener('click', () => commit([]));
   return { load };
 };

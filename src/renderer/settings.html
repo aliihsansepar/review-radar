@@ -31,12 +31,20 @@
         <div class="group">
           <div class="item">
             <div class="filter-head">
-              <input type="search" id="filter-search" placeholder="Search repositories…" aria-label="Search repositories" />
+              <label class="filter-field">
+                <span class="filter-mag" aria-hidden="true">⌕</span>
+                <input type="search" id="filter-search" placeholder="Search repositories…" aria-label="Search repositories" />
+              </label>
               <button class="link" id="filter-refresh" type="button">Reload</button>
             </div>
           </div>
+          <div class="filter-chips" id="filter-chips" hidden></div>
           <div class="filter-list" id="filter-list"></div>
           <p class="filter-status dim" id="filter-status" role="status" hidden></p>
+          <div class="filter-foot">
+            <span class="filter-summary dim" id="filter-summary"></span>
+            <button class="link" id="filter-clear" type="button">Clear</button>
+          </div>
         </div>
       </section>
 

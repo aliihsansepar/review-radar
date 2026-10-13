@@ -24,11 +24,19 @@
       </header>
       <section class="filter" id="filter" hidden>
         <div class="filter-head">
-          <input type="search" id="filter-search" placeholder="Search repositories…" aria-label="Search repositories" />
+          <label class="filter-field">
+            <span class="filter-mag" aria-hidden="true">⌕</span>
+            <input type="search" id="filter-search" placeholder="Search repositories…" aria-label="Search repositories" />
+          </label>
           <button class="link" id="filter-refresh" type="button">Reload</button>
         </div>
+        <div class="filter-chips" id="filter-chips" hidden></div>
         <div class="filter-list" id="filter-list"></div>
         <p class="filter-status" id="filter-status" role="status" hidden></p>
+        <div class="filter-foot">
+          <span class="filter-summary" id="filter-summary"></span>
+          <button class="link" id="filter-clear" type="button">Clear</button>
+        </div>
       </section>
       <div class="error-row" id="error" role="alert" hidden></div>
       <ul id="list" aria-label="Pull requests waiting on your review"></ul>

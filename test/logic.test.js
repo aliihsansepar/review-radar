@@ -209,15 +209,20 @@ test('matchesFilter ignores case and tolerates a missing repo name', () => {
   assert.equal(matchesFilter(undefined, new Set(['acme/web'])), false);
 });
 
-const POOL = { orgs: ['zorg'], repos: ['zorg/web', 'zorg/api', 'alice/tool'], truncated: false };
+const POOL = {
+  orgs: ['zorg'],
+  repos: ['zorg/web', 'zorg/api', 'alice/tool'],
+  avatars: { zorg: 'https://avatars.githubusercontent.com/zorg', alice: 'https://avatars.githubusercontent.com/alice' },
+  truncated: false,
+};
 
 test('buildFilterList groups by owner, orgs first, with short repo names', () => {
   const list = buildFilterList(POOL, ['zorg/web']);
   assert.deepEqual(
-    list.groups.map((group) => [group.owner, group.isOrg, group.state]),
+    list.groups.map((group) => [group.owner, group.isOrg, group.avatarUrl, group.state]),
     [
-      ['zorg', true, 'some'],
-      ['alice', false, 'none'],
+      ['zorg', true, 'https://avatars.githubusercontent.com/zorg', 'some'],
+      ['alice', false, 'https://avatars.githubusercontent.com/alice', 'none'],
     ],
   );
   assert.deepEqual(list.groups[0].repos, [

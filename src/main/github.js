@@ -59,7 +59,7 @@ query($cursor: String) {
   viewer {
     repositories(first: 100, after: $cursor, affiliations: [OWNER, COLLABORATOR], orderBy: { field: NAME, direction: ASC }) {
       pageInfo { hasNextPage endCursor }
-      nodes { nameWithOwner }
+      nodes { nameWithOwner owner { avatarUrl } }
     }
   }
 }`;
@@ -69,7 +69,7 @@ query($login: String!, $cursor: String) {
   organization(login: $login) {
     repositories(first: 100, after: $cursor, orderBy: { field: NAME, direction: ASC }) {
       pageInfo { hasNextPage endCursor }
-      nodes { nameWithOwner }
+      nodes { nameWithOwner owner { avatarUrl } }
     }
   }
 }`;
@@ -182,18 +182,22 @@ async function fetchReviewRequests(token) {
 }
 
 async function collectRepos(token, query, variables, read, maxPages) {
-  const names = [];
+  const repos = [];
   let cursor = null;
   for (let page = 0; page < maxPages; page++) {
     const { data } = await graphql(token, query, { ...variables, cursor });
     const connection = read(data);
-    if (!connection) return { names, truncated: false };
-    for (const repo of connection.nodes ?? []) if (repo?.nameWithOwner) names.push(repo.nameWithOwner);
-    if (!connection.pageInfo?.hasNextPage) return { names, truncated: false };
+    if (!connection) return { repos, truncated: false };
+    for (const repo of connection.nodes ?? []) {
+      if (repo?.nameWithOwner) {
+        repos.push({ nameWithOwner: repo.nameWithOwner, avatarUrl: repo.owner?.avatarUrl ?? null });
+      }
+    }
+    if (!connection.pageInfo?.hasNextPage) return { repos, truncated: false };
     cursor = connection.pageInfo.endCursor;
-    if (page === maxPages - 1) return { names, truncated: true };
+    if (page === maxPages - 1) return { repos, truncated: true };
   }
-  return { names, truncated: false };
+  return { repos, truncated: false };
 }
 
 async function fetchRepoPool(token, { maxPages = 10 } = {}) {
@@ -203,18 +207,27 @@ async function fetchRepoPool(token, { maxPages = 10 } = {}) {
     .map((org) => org.login)
     .sort();
 
-  const repos = new Set();
+  const names = new Set();
+  const avatars = {};
+  const add = (entries) => {
+    for (const entry of entries) {
+      names.add(entry.nameWithOwner);
+      const owner = entry.nameWithOwner.split('/')[0].toLowerCase();
+      if (entry.avatarUrl && !avatars[owner]) avatars[owner] = entry.avatarUrl;
+    }
+  };
+
   const mine = await collectRepos(token, VIEWER_REPOS_QUERY, {}, (view) => view?.viewer?.repositories, maxPages);
-  mine.names.forEach((name) => repos.add(name));
+  add(mine.repos);
 
   let truncated = mine.truncated;
   for (const login of orgs) {
     const read = (view) => view?.organization?.repositories;
     const found = await collectRepos(token, ORG_REPOS_QUERY, { login }, read, maxPages);
-    found.names.forEach((name) => repos.add(name));
+    add(found.repos);
     truncated = truncated || found.truncated;
   }
-  return { orgs, repos: [...repos].sort(), truncated };
+  return { orgs, repos: [...names].sort(), avatars, truncated };
 }
 
 async function fetchLatestRelease(token) {

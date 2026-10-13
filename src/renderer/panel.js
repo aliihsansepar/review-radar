@@ -104,6 +104,9 @@ const filterPanel = window.mountFilterPanel({
   search: filterSearch,
   empty: filterStatus,
   refresh: document.getElementById('filter-refresh'),
+  chips: document.getElementById('filter-chips'),
+  summary: document.getElementById('filter-summary'),
+  clear: document.getElementById('filter-clear'),
   onChange: measure,
 });
 

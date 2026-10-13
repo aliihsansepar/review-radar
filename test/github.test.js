@@ -20,7 +20,10 @@ function stub(routes) {
 
 const connection = (names, hasNextPage, endCursor) => ({
   pageInfo: { hasNextPage, endCursor },
-  nodes: names.map((nameWithOwner) => ({ nameWithOwner })),
+  nodes: names.map((nameWithOwner) => ({
+    nameWithOwner,
+    owner: { avatarUrl: `https://avatars.githubusercontent.com/${nameWithOwner.split('/')[0]}` },
+  })),
 });
 
 test('fetchRepoPool collects the viewer repos and every organization repos', async () => {
@@ -38,6 +41,8 @@ test('fetchRepoPool collects the viewer repos and every organization repos', asy
   const pool = await github.fetchRepoPool('t');
   assert.deepEqual(pool.orgs, ['acme', 'globex']);
   assert.deepEqual(pool.repos, ['acme/api', 'acme/web', 'globex/x', 'me/tool']);
+  assert.equal(pool.avatars.acme, 'https://avatars.githubusercontent.com/acme');
+  assert.equal(pool.avatars.me, 'https://avatars.githubusercontent.com/me');
   assert.equal(pool.truncated, false);
 });
 

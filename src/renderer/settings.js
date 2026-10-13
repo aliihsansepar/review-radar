@@ -122,5 +122,8 @@ window
     search: document.getElementById('filter-search'),
     empty: document.getElementById('filter-status'),
     refresh: document.getElementById('filter-refresh'),
+    chips: document.getElementById('filter-chips'),
+    summary: document.getElementById('filter-summary'),
+    clear: document.getElementById('filter-clear'),
   })
   .load(false);
